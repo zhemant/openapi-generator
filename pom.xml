@@ -894,7 +894,7 @@
             <modules>
                 <!-- clients -->
                 <module>samples/client/petstore/haskell-http-client</module>
-
+                <module>samples/client/petstore/haskell-http-client/tests-integration</module>
                 <module>samples/client/petstore/elm</module>
                 <module>samples/client/petstore/groovy</module>
                 <module>samples/client/petstore/rust</module>
