@@ -95,7 +95,7 @@ public class DefaultGenerator extends AbstractGenerator implements Generator {
 
     /**
      * Programmatically disable the output of .openapi-generator/VERSION, .openapi-generator-ignore,
-     * or other metadata files used by Swagger Codegen.
+     * or other metadata files used by OpenAPI Generator.
      *
      * @param generateMetadata true: enable outputs, false: disable outputs
      */
@@ -169,13 +169,14 @@ public class DefaultGenerator extends AbstractGenerator implements Generator {
         if (!generateApiTests && !generateModelTests) {
             config.additionalProperties().put(CodegenConstants.EXCLUDE_TESTS, true);
         }
-        // for backward compatibility
-        if (System.getProperty("debugSwagger") != null) {
-            LOGGER.info("Please use system property 'debugOpenAPI' instead of 'debugSwagger'.");
-            Json.prettyPrint(openAPI);
-        }
+
 
         if (System.getProperty("debugOpenAPI") != null) {
+            Json.prettyPrint(openAPI);
+        } else if (System.getProperty("debugSwagger") != null) {
+            // This exists for backward compatibility
+            // We fall to this block only if debugOpenAPI is null. No need to dump this twice.
+            LOGGER.info("Please use system property 'debugOpenAPI' instead of 'debugSwagger'.");
             Json.prettyPrint(openAPI);
         }
 
@@ -193,8 +194,14 @@ public class DefaultGenerator extends AbstractGenerator implements Generator {
 
         URL url = URLPathUtils.getServerURL(openAPI);
         contextPath = config.escapeText(url.getPath());
-        basePath = config.escapeText(URLPathUtils.getHost(openAPI));
         basePathWithoutHost = contextPath; // for backward compatibility
+        basePath = config.escapeText(URLPathUtils.getHost(openAPI));
+        if ("/".equals(basePath.substring(basePath.length() - 1))) {
+            // remove trailing "/"
+            // https://host.example.com/ => https://host.example.com
+            basePath = basePath.substring(0, basePath.length() - 1);
+        }
+
     }
 
     private void configureOpenAPIInfo() {
@@ -781,8 +788,8 @@ public class DefaultGenerator extends AbstractGenerator implements Generator {
         configureOpenAPIInfo();
 
         // resolve inline models
-        //InlineModelResolver inlineModelResolver = new InlineModelResolver();
-        //inlineModelResolver.flatten(openAPI);
+        InlineModelResolver inlineModelResolver = new InlineModelResolver();
+        inlineModelResolver.flatten(openAPI);
 
         List<File> files = new ArrayList<File>();
         // models
@@ -896,8 +903,8 @@ public class DefaultGenerator extends AbstractGenerator implements Generator {
         if (path.getParameters() != null) {
             for (Parameter parameter : path.getParameters()) {
                 //skip propagation if a parameter with the same name is already defined at the operation level
-                if (!operationParameters.contains(generateParameterId(parameter)) && operation.getParameters() != null) {
-                    operation.getParameters().add(parameter);
+                if (!operationParameters.contains(generateParameterId(parameter))) {
+                    operation.addParametersItem(parameter);
                 }
             }
         }
