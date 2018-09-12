@@ -24,6 +24,7 @@ cJSON *tag_convertToJSON(tag_t *tag) {
 
 	return item;
 fail:
+
 	cJSON_Delete(item);
 	return NULL;
 }
