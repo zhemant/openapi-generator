@@ -28,7 +28,7 @@
     // create the path
     char *localVarPath;
     if(-1 == asprintf(&localVarPath, "%s", "{{{path}}}")) {
-        fprintf(stderr,"Memory allocation or some error occured.\n");
+        fprintf(stderr,"Memory allocation problem or some error occured.\n");
         goto end;
     }
 
@@ -43,7 +43,7 @@
     {{/required}}
     char* localVarToReplace_{{paramName}};
     if(-1 == asprintf(&localVarToReplace_{{paramName}}, "{%s}","{{paramName}}")) {
-        fprintf(stderr,"Memory allocation or some error occured.\n");
+        fprintf(stderr,"Memory allocation problem or some error occured.\n");
         goto end;
     }
     char localVarBuff_{{paramName}}[256];
@@ -54,7 +54,7 @@
     {{#isString}}
     char* localVarToReplace_{{paramName}};
     if(-1 ==  asprintf(&localVarToReplace_{{paramName}},"{%s}","{{paramName}}")) {
-        fprintf(stderr,"Memory allocation or some error occured.\n");
+        fprintf(stderr,"Memory allocation problem or some error occured.\n");
         goto end;
     }
     localVarPath = strReplace(localVarPath, localVarToReplace_{{paramName}}, {{paramName}});
