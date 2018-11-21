@@ -277,7 +277,7 @@
 
     {{#responses}}
     if (apiClient->response_code == {{code}}) {
-        printf("HTTP response: %s:%s\n","{{code}}","{{message}}");
+        printf("HTTP response: \n\t{{code}}:{{message}}\n");
     }
     {{/responses}}
     {{#returnType}}
