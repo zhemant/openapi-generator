@@ -281,6 +281,11 @@
     }
     {{/responses}}
     {{#returnType}}
+    if (!apiClient->dataReceived)
+    {
+        fprintf(stderr,"Data not Received");
+        return 0;
+    }
     {{#returnTypeIsPrimitive}}
     {{#returnSimpleType}}
     //primitive reutrn type simple
@@ -312,7 +317,7 @@
     {
         if(!cJSON_IsObject({{{paramName}}}VarJSON))
         {
-           // return 0;
+            return 0;
         }
         char *localVarJSONToChar = cJSON_Print({{{paramName}}}VarJSON);
         list_addElement(elementToReturn , localVarJSONToChar);
