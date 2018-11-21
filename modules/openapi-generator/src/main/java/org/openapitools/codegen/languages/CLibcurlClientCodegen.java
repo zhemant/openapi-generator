@@ -419,14 +419,17 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         if ("Integer".equals(datatype) || "Float".equals(datatype)) {
             return value;
         } else {
+            value = value.replaceAll("-","_");
             if (value.matches("\\d.*")) { // starts with number
                 return "N" + escapeText(value);
             } else {
+                if (isReservedWord(value) || value.matches("^\\d.*")) {
+                    value = escapeReservedWord(value);
+                }
                 return escapeText(value);
             }
         }
     }
-
     @Override
     public String toEnumVarName(String name, String datatype) {
         if (name.length() == 0) {
