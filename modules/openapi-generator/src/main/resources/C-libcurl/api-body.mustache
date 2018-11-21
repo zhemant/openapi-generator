@@ -1,15 +1,10 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+
 #include "{{classname}}.h"
-
-
-#define MAX_BUFFER_LENGTH 4096
-#define intToStr(dst, src) \
-    do {\
-    char dst[256];\
-    snprintf(dst, 256, "%ld", (long int)(src));\
-}while(0)
 
 {{#operations}}
 {{#operation}}
@@ -31,42 +26,50 @@
     char      *localVarBodyParameters = NULL;
 
     // create the path
-    long sizeOfPath = strlen("{{{path}}}")+1;
-    char *localVarPath = malloc(sizeOfPath);
-    snprintf(localVarPath, sizeOfPath, "{{{path}}}");
-
-    {{#pathParams}}
-
-    // Path Params
-    long sizeOfPathParams_{{{paramName}}} = {{#pathParams}}{{#isLong}}sizeof({{paramName}})+3{{/isLong}}{{#isString}}strlen({{paramName}})+3{{/isString}}{{/pathParams}} + strlen("{ {{paramName}} }");
-
-    {{#isLong}}
-    if({{paramName}} == 0){
+    char *localVarPath;
+    if(-1 == asprintf(&localVarPath, "%s", "{{{path}}}")) {
+        fprintf(stderr,"Memory allocation or some error occured.\n");
         goto end;
     }
-    char* localVarToReplace_{{paramName}} = malloc(sizeOfPathParams_{{paramName}});
-    snprintf(localVarToReplace_{{paramName}}, sizeOfPathParams_{{paramName}}, "%s%s%s", "{", "{{paramName}}", "}");
 
+    {{#pathParams}}
+    // Path Params
+    {{#isLong}}
+    {{#required}}
+    if(!{{paramName}}){
+        fprintf(stderr,"Required Parameter \"{{paramName}}\" not set.\n");
+        goto end;
+    }
+    {{/required}}
+    char* localVarToReplace_{{paramName}};
+    if(-1 == asprintf(&localVarToReplace_{{paramName}}, "{%s}","{{paramName}}")) {
+        fprintf(stderr,"Memory allocation or some error occured.\n");
+        goto end;
+    }
     char localVarBuff_{{paramName}}[256];
-    intToStr(localVarBuff_{{paramName}}, {{paramName}});
-
+    sprintf(localVarBuff_{{paramName}},"%ld",{{paramName}});
     localVarPath = strReplace(localVarPath, localVarToReplace_{{paramName}}, localVarBuff_{{paramName}});
 
     {{/isLong}}
     {{#isString}}
-    if({{paramName}} == NULL) {
+    char* localVarToReplace_{{paramName}};
+    if(-1 ==  asprintf(&localVarToReplace_{{paramName}},"{%s}","{{paramName}}")) {
+        fprintf(stderr,"Memory allocation or some error occured.\n");
         goto end;
     }
-    char* localVarToReplace_{{paramName}} = malloc(sizeOfPathParams_{{paramName}});
-    sprintf(localVarToReplace_{{paramName}}, "%s%s%s", "{", "{{paramName}}", "}");
-
     localVarPath = strReplace(localVarPath, localVarToReplace_{{paramName}}, {{paramName}});
     {{/isString}}
+
     {{/pathParams}}
     {{#headerParams}}
-
+    // header parameter
+    {{#required}}
+    if(!{{paramName}}){
+        fprintf(stderr,"Required Parameter \"{{paramName}}\" not set.\n");
+        goto end;
+    }
+    {{/required}}
     {{#isString}}
-    // header parameters
     char *keyHeader_{{{paramName}}};
     char *valueHeader_{{{paramName}}};
     keyValuePair_t *keyPairHeader_{{paramName}} = 0;
@@ -78,7 +81,6 @@
     }
     {{/isString}}
     {{^isString}}
-    // header parameters
     char *keyHeader_{{{paramName}}};
     {{dataType}} valueHeader_{{{paramName}}};
     keyValuePair_t *keyPairHeader_{{paramName}} = 0;
@@ -89,10 +91,16 @@
         list_addElement(localVarHeaderParameters,keyPairHeader_{{paramName}});
     }
     {{/isString}}
+
     {{/headerParams}}
     {{#queryParams}}
-
     // query parameters
+    {{#required}}
+    if(!{{paramName}}){
+        fprintf(stderr,"Required Parameter \"{{paramName}}\" not set.\n");
+        goto end;
+    }
+    {{/required}}
     {{#isListContainer}}
     if ({{paramName}})
     {{/isListContainer}}
@@ -132,12 +140,17 @@
     {{/isString}}
     {{/isListContainer}}
     }
+
     {{/queryParams}}
     {{#formParams}}
-
+    {{#required}}
+    if(!{{paramName}}){
+        fprintf(stderr,"Required Parameter \"{{paramName}}\" not set.\n");
+        goto end;
+    }
+    {{/required}}
     // form parameters
     {{#isFile}}
-
     char *keyForm_{{paramName}};
     FileStruct *fileVar_{{paramName}};
     keyValuePair_t *keyPairForm_{{paramName}} = 0;
@@ -192,10 +205,16 @@
         {{/isString}}
         {{/isFile}}
     }
+
     {{/formParams}}
     {{#bodyParam}}
-
     // Body Param
+    {{#required}}
+    if(!{{paramName}}){
+        fprintf(stderr,"Required Parameter \"{{paramName}}\" not set.\n");
+        goto end;
+    }
+    {{/required}}
     {{#isListContainer}}
     //notstring
     cJSON *localVar_{{paramName}};
@@ -237,6 +256,7 @@
         localVarBodyParameters = cJSON_Print(localVarSingleItemJSON_{{paramName}});
     }
     {{/isListContainer}}
+
     {{/bodyParam}}
     {{#produces}}
     list_addElement(localVarHeaderType,"{{{mediaType}}}"); //produces
@@ -244,6 +264,7 @@
     {{#consumes}}
     list_addElement(localVarContentType,"{{{mediaType}}}"); //consumes
     {{/consumes}}
+
     apiClient_invoke(apiClient,
                     localVarPath,
                     localVarQueryParameters,
@@ -256,7 +277,7 @@
 
     {{#responses}}
     if (apiClient->response_code == {{code}}) {
-        printf("%s\n","{{message}}");
+        printf("HTTP response: %s:%s\n","{{code}}","{{message}}");
     }
     {{/responses}}
     {{#returnType}}
@@ -310,7 +331,7 @@
     {{/returnContainer}}
     //return type
     {{/returnTypeIsPrimitive}}
-    apiClient_free(apiClient);
+    apiClient_free(apiClient); //frees data received and curl but not the apiClient object
     {{#hasQueryParams}}list_free(localVarQueryParameters);{{/hasQueryParams}}
     {{#hasHeaderParams}}list_free(localVarHeaderParameters);{{/hasHeaderParams}}
     {{#hasFormParams}}list_free(localVarFormParameters);{{/hasFormParams}}
@@ -380,7 +401,7 @@ end:
     {{/returnType}}
     {{^returnType}}
     //No return type
-end:    apiClient_free(apiClient);
+end:    apiClient_free(apiClient);//frees data received and curl but not the apiClient object
     {{#hasQueryParams}}list_free(localVarQueryParameters);{{/hasQueryParams}}
     {{#hasHeaderParams}}list_free(localVarHeaderParameters);{{/hasHeaderParams}}
     {{#hasFormParams}}list_free(localVarFormParameters);{{/hasFormParams}}
