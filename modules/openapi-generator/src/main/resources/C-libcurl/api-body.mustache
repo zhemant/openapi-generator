@@ -328,11 +328,16 @@
     {{/returnContainer}}
     {{^returnContainer}}
     //nonprimitive not container
-    {{{returnBaseType}}}_t *elementToReturn = {{{returnBaseType}}}_parseFromJSON(apiClient->dataReceived);
+    if(!apiClient->dataReceived)
+        return 0;
+    cJSON *{{classname}}localVarJSON = cJSON_Parse(apiClient->dataReceived);
+    if (!{{classname}}localVarJSON)
+        return 0;
+    {{{returnBaseType}}}_t *elementToReturn = {{{returnBaseType}}}_parseFromJSON({{classname}}localVarJSON);
     if(elementToReturn == NULL) {
         // return 0;
     }
-
+    cJSON_Delete({{classname}}localVarJSON);
     {{/returnContainer}}
     //return type
     {{/returnTypeIsPrimitive}}

@@ -248,10 +248,8 @@ fail:
 	return NULL;
 }
 
-{{classname}}_t *{{classname}}_parseFromJSON(char *jsonString){
+{{classname}}_t *{{classname}}_parseFromJSON(cJSON *{{classname}}JSON){
 
-    {{classname}}_t *{{classname}} = NULL;
-    cJSON *{{classname}}JSON = cJSON_Parse(jsonString);
     if({{classname}}JSON == NULL){
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
@@ -307,14 +305,13 @@ fail:
     {{^isPrimitiveType}}
     {{complexType}}_t *{{baseName}};
     cJSON *{{baseName}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{baseName}}");
-    if({{classname}}JSON == NULL){
+    if({{baseName}}JSON == NULL){
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL)
             fprintf(stderr, "Error Before: %s\n", error_ptr);
         goto end; //nonprimitive
     }
-    char *{{{baseName}}}JSONData = cJSON_Print({{{baseName}}}JSON);
-    {{{baseName}}} = {{complexType}}_parseFromJSON({{{baseName}}}JSONData);
+    {{{baseName}}} = {{complexType}}_parseFromJSON({{{baseName}}}JSON);
     {{/isPrimitiveType}}
     {{/isContainer}}
     {{#isContainer}}
@@ -362,11 +359,9 @@ fail:
         if(!cJSON_IsObject({{{baseName}}})){
             goto end;
         }
-		char *JSONData = cJSON_Print({{{baseName}}});
-        {{complexType}}_t *{{{baseName}}}Item = {{complexType}}_parseFromJSON(JSONData);
+        {{complexType}}_t *{{{baseName}}}Item = {{complexType}}_parseFromJSON({{{baseName}}});
 
         list_addElement({{{baseName}}}List, {{{baseName}}}Item);
-        free(JSONData);
     }
     {{/isPrimitiveType}}
     {{/isListContainer}}
@@ -406,7 +401,7 @@ fail:
 
     {{/vars}}
 
-    {{classname}} = {{classname}}_create (
+    {{classname}}_t *{{classname}}Object = {{classname}}_create (
         {{#vars}}
         {{^isContainer}}
         {{^isPrimitiveType}}
@@ -449,17 +444,9 @@ fail:
         {{/isContainer}}
         {{/vars}}
         );
-{{#vars}}
-        {{^isContainer}}
-        {{^isPrimitiveType}}
-        free({{{baseName}}}JSONData);
-        {{/isPrimitiveType}}
-        {{/isContainer}}
-{{/vars}}
- cJSON_Delete({{classname}}JSON);
-    return {{classname}};
+
+    return {{classname}}Object;
 end:
-    cJSON_Delete({{classname}}JSON);
     return NULL;
 
 }
