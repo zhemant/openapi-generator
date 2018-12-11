@@ -328,6 +328,11 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
 
         name = underscore(name);
 
+        // variable name starts with number
+        if (name.matches("^\\d.*")) {
+            name = "N" + name;
+        }
+
         // for reserved word or word starting with number, append _
         if (isReservedWord(name) || name.matches("^\\d.*")) {
             name = escapeReservedWord(name);
@@ -421,11 +426,15 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         if ("Integer".equals(datatype) || "Float".equals(datatype)) {
             return value;
         } else {
+            String localValue;
             if (value.matches("\\d.*")) { // starts with number
-                return "N" + escapeText(value);
+                localValue = "N" + escapeText(value);
             } else {
-                return escapeText(value);
+                localValue = escapeText(value);
             }
+
+            localValue = localValue.replaceAll("-","_");
+            return localValue;
         }
     }
 
