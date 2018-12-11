@@ -1779,6 +1779,11 @@ public class DefaultCodegen implements CodegenConfig {
         // remove duplicated properties
         m.removeAllDuplicatedProperty();
 
+        // add enum property to var
+        if (m.isEnum) {
+            CodegenProperty property = fromProperty(m.classname,schema);
+            m.vars.add(property);
+        }
         // post process model properties
         if (m.vars != null) {
             for (CodegenProperty prop : m.vars) {
@@ -2102,6 +2107,16 @@ public class DefaultCodegen implements CodegenConfig {
             property.datatypeWithEnum = property.dataType;
         }
 
+       if (!StringUtils.isBlank(p.get$ref())) {
+           Schema ref = globalSchemas.get(ModelUtils.getSimpleRef(p.get$ref()));
+           if (ref != null) {
+               if (ref.getEnum() != null) {
+                   CodegenProperty cp = fromProperty("refSchema", ref);
+                   updatePropertyForReusableEnum(property,cp);
+               }
+           }
+       }
+
         if (ModelUtils.isArraySchema(p)) {
             property.isContainer = true;
             property.isListContainer = true;
@@ -2153,6 +2168,25 @@ public class DefaultCodegen implements CodegenConfig {
 
         LOGGER.debug("debugging from property return: " + property);
         return property;
+    }
+
+    /**
+     * Update Enum property for reusable enum
+     *
+     * @param property      Codegen property
+     * @param innerProperty Codegen referenced property
+     */
+    protected void updatePropertyForReusableEnum(CodegenProperty property, CodegenProperty referenceSchema) {
+        property.isPrimitiveType = true;
+        property.isEnum = true;
+        property.datatypeWithEnum = property.dataType;
+        property.enumName = property.dataType;
+        property.allowableValues = referenceSchema.allowableValues;
+        property.isString = referenceSchema.isString;
+        property.isNumeric = referenceSchema.isNumeric;
+        property.isInteger = referenceSchema.isInteger;
+        property.isLong = referenceSchema.isLong;
+        property.isNumber = referenceSchema.isNumber;
     }
 
     /**

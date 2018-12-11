@@ -458,7 +458,7 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
 
     @Override
     public String toEnumName(CodegenProperty property) {
-        String enumName = camelize(toModelName(property.name)).toUpperCase(Locale.ROOT);
+        String enumName = toModelName(property.name);
         enumName = enumName.replaceFirst("^_", "");
         enumName = enumName.replaceFirst("_$", "");
 
