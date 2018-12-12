@@ -2181,7 +2181,7 @@ public class DefaultCodegen implements CodegenConfig {
         property.isEnum = true;
         property.datatypeWithEnum = property.dataType;
         property.enumName = property.dataType;
-        property.allowableValues = referenceSchema.allowableValues;
+        //property.allowableValues = referenceSchema.allowableValues;
         property.isString = referenceSchema.isString;
         property.isNumeric = referenceSchema.isNumeric;
         property.isInteger = referenceSchema.isInteger;

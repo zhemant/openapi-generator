@@ -23,22 +23,28 @@ typedef int bool;
 {{/isBoolean}}
 {{/vars}}
 
+
 {{#vars}}
 {{#isEnum}}
+{{^isModel}}
+{{#isPrimitiveType}}
 {{#allowableValues}}
 typedef enum  { {{#enumVars}} {{{value}}}{{^-last}},{{/-last}}{{/enumVars}} } {{baseName}}_e;
 {{/allowableValues}}
+
+char* {{baseName}}_ToString({{baseName}}_e {{baseName}});
+
+{{baseName}}_e {{baseName}}_FromString(char* {{baseName}});
+
+cJSON *{{baseName}}_convertToJSON({{baseName}}_e {{baseName}});
+
+{{baseName}}_e {{baseName}}_parseFromJSON(char *jsonString);
+{{/isPrimitiveType}}
+{{/isModel}}
 {{/isEnum}}
 {{/vars}}
 
-{{#vars}}
-{{#isEnum}}
-char* {{baseName}}{{classname}}_ToString({{baseName}}_e {{baseName}});
-
-{{baseName}}_e {{baseName}}{{classname}}_FromString(char* {{baseName}});
-{{/isEnum}}
-{{/vars}}
-
+{{^isEnum}}
 typedef struct {{classname}}_t {
         {{#vars}}
         {{^isContainer}}
@@ -54,7 +60,7 @@ typedef struct {{classname}}_t {
         {{/isBoolean}}
         {{#isEnum}}
         {{#isString}}
-        {{baseName}}_e {{baseName}}; //enum string
+        {{datatypeWithEnum}}_e {{baseName}}; //enum string
         {{/isString}}
         {{/isEnum}}
         {{^isEnum}}
@@ -100,7 +106,7 @@ typedef struct {{classname}}_t {
         {{/isBoolean}}
         {{#isEnum}}
         {{#isString}}
-        {{baseName}}_e {{baseName}}{{#hasMore}},{{/hasMore}}
+        {{datatypeWithEnum}}_e {{baseName}}{{#hasMore}},{{/hasMore}}
         {{/isString}}
         {{/isEnum}}
         {{^isEnum}}
@@ -135,6 +141,6 @@ void {{classname}}_free({{classname}}_t *{{classname}});
 {{classname}}_t *{{classname}}_parseFromJSON(char *jsonString);
 
 cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}});
-
+{{/isEnum}}
 #endif /* _{{classname}}_H_ */
 {{/model}}{{/models}}

@@ -140,7 +140,6 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         languageSpecificPrimitives.add("double");
         languageSpecificPrimitives.add("char");
         languageSpecificPrimitives.add("FILE");
-        languageSpecificPrimitives.add("Object");
         languageSpecificPrimitives.add("list_t*");
         languageSpecificPrimitives.add("list");
 
@@ -210,6 +209,9 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         supportingFiles.add(new SupportingFile("cJSON.licence.mustache", "external", "cJSON.licence"));
         supportingFiles.add(new SupportingFile("cJSON.c.mustache", "external", "cJSON.c"));
         supportingFiles.add(new SupportingFile("cJSON.h.mustache", "external", "cJSON.h"));
+        // object files in model folder
+        supportingFiles.add(new SupportingFile("object-body.mustache", "model", "object.c"));
+        supportingFiles.add(new SupportingFile("object-header.mustache", "model", "object.h"));
 
     }
 
@@ -618,6 +620,79 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         return input.replace("=end", "=_end").replace("=begin", "=_begin");
     }
 
+    /**
+     * Set CodegenParameter boolean flag using CodegenProperty.
+     *
+     * @param parameter Codegen Parameter
+     * @param property  Codegen property
+     */
+    public void setParameterBooleanFlagWithCodegenProperty(CodegenParameter parameter, CodegenProperty property) {
+        if (parameter == null) {
+            LOGGER.error("Codegen Parameter cannot be null.");
+            return;
+        }
+
+        if (property == null) {
+            LOGGER.error("Codegen Property cannot be null.");
+            return;
+        }
+        if (Boolean.TRUE.equals(property.isEmail) && Boolean.TRUE.equals(property.isString)) {
+            parameter.isEmail = true;
+            parameter.isString = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isUuid) && Boolean.TRUE.equals(property.isString)) {
+            parameter.isUuid = true;
+            parameter.isString = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isByteArray)) {
+            parameter.isByteArray = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isBinary)) {
+            parameter.isBinary = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isString)) {
+            parameter.isString = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isBoolean)) {
+            parameter.isBoolean = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isLong)) {
+            parameter.isLong = true;
+            parameter.isNumber = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isInteger)) {
+            parameter.isInteger = true;
+            parameter.isNumber = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isDouble)) {
+            parameter.isDouble = true;
+            parameter.isNumber = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isFloat)) {
+            parameter.isFloat = true;
+            parameter.isNumber = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isNumber)) {
+            parameter.isNumber = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isDate)) {
+            parameter.isDate = true;
+            parameter.isString = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isDateTime)) {
+            parameter.isDateTime = true;
+            parameter.isString = true;
+            parameter.isPrimitiveType = true;
+        } else if (Boolean.TRUE.equals(property.isFreeFormObject)) {
+            parameter.isFreeFormObject = true;
+        } else {
+            LOGGER.debug("Property type is not primitive: " + property.dataType);
+        }
+
+        if (Boolean.TRUE.equals(property.isFile)) {
+            parameter.isFile = true;
+        }
+    }
 
     @Override
     public void postProcessFile(File file, String fileType) {

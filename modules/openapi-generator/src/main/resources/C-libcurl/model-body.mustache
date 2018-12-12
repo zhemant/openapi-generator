@@ -8,13 +8,15 @@
 
 {{#vars}}
 {{#isEnum}}
-char* {{baseName}}{{classname}}_ToString({{baseName}}_e {{baseName}}){
+{{^isModel}}
+{{#isPrimitiveType}}
+char* {{datatypeWithEnum}}_ToString({{baseName}}_e {{baseName}}){
     char *{{baseName}}Array[] =  { {{#allowableValues}}{{#enumVars}}"{{{value}}}"{{^-last}},{{/-last}}{{/enumVars}}{{/allowableValues}} };
     return {{baseName}}Array[{{baseName}}];
 
 }
 
-{{baseName}}_e {{baseName}}{{classname}}_FromString(char* {{baseName}}){
+{{baseName}}_e {{datatypeWithEnum}}_FromString(char* {{baseName}}){
     int stringToReturn = 0;
     char *{{baseName}}Array[] =  { {{#allowableValues}}{{#enumVars}}"{{{value}}}"{{^-last}},{{/-last}}{{/enumVars}}{{/allowableValues}} };
     size_t sizeofArray = sizeof({{baseName}}Array) / sizeof({{baseName}}Array[0]);
@@ -24,10 +26,70 @@ char* {{baseName}}{{classname}}_ToString({{baseName}}_e {{baseName}}){
         }
         stringToReturn++;
     }
+    return 0;
 }
+
+cJSON *{{baseName}}_convertToJSON({{baseName}}_e {{baseName}}) {
+	cJSON *item = cJSON_CreateObject();
+    {{#isString}}
+    if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{{datatypeWithEnum}}}_ToString({{{baseName}}})) == NULL) {
+    goto fail;
+    }
+    {{/isString}}
+    {{^isString}}
+    if(cJSON_AddNumberToObject(item, "{{{baseName}}}", {{{baseName}}}) == NULL) {
+    goto fail;
+    }
+    {{/isString}}
+    return item;
+fail:
+	cJSON_Delete(item);
+	return NULL;
+}
+
+{{baseName}}_e {{baseName}}_parseFromJSON(char *jsonString){
+
+    {{baseName}}_e *{{baseName}} = NULL;
+    cJSON *{{classname}}JSON = cJSON_Parse(jsonString);
+    if({{classname}}JSON == NULL){
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            fprintf(stderr, "Error Before: %s\n", error_ptr);
+            goto end;
+        }
+    }
+
+    {{#isNumeric}}
+    cJSON *{{{baseName}}}Var = cJSON_GetObjectItemCaseSensitive({{baseName}}JSON, "{{{baseName}}}");
+    if(!cJSON_IsNumber({{{baseName}}}Var))
+    {
+    goto end;
+    }
+    {{/isNumeric}}
+    {{#isEnum}}
+    {{#isString}}
+    {{{datatypeWithEnum}}}_e {{baseName}}Variable;
+    cJSON *{{{baseName}}}Var = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
+    if(!cJSON_IsString({{{baseName}}}Var) || ({{{baseName}}}Var->valuestring == NULL)){
+    goto end;
+    }
+
+    {{baseName}}Variable = {{datatypeWithEnum}}_FromString({{{baseName}}}Var->valuestring);
+    {{/isString}}
+    {{/isEnum}}
+
+ cJSON_Delete({{baseName}}JSON);
+    return {{baseName}}Variable;
+end:
+    cJSON_Delete({{baseName}}JSON);
+    return 0; // need to fix this
+
+}
+{{/isPrimitiveType}}
+{{/isModel}}
 {{/isEnum}}
 {{/vars}}
-
+{{^isEnum}}
 {{classname}}_t *{{classname}}_create(
     {{#vars}}
     {{^isContainer}}
@@ -43,7 +105,7 @@ char* {{baseName}}{{classname}}_ToString({{baseName}}_e {{baseName}}){
     {{/isBoolean}}
     {{#isEnum}}
     {{#isString}}
-    {{baseName}}_e {{baseName}}{{#hasMore}},{{/hasMore}}
+    {{datatypeWithEnum}}_e {{baseName}}{{#hasMore}},{{/hasMore}}
     {{/isString}}
     {{/isEnum}}
     {{^isEnum}}
@@ -86,7 +148,7 @@ void {{classname}}_free({{classname}}_t *{{classname}}) {
 	{{#vars}}
 	{{^isContainer}}
 	{{^isPrimitiveType}}
-	{{{complexType}}}_free({{{classname}}}->{{{baseName}}});
+	{{{complexType}}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_free({{{classname}}}->{{{baseName}}});
 	{{/isPrimitiveType}}
 	{{#isPrimitiveType}}
     {{^isEnum}}
@@ -108,9 +170,11 @@ void {{classname}}_free({{classname}}_t *{{classname}}) {
 	list_free({{classname}}->{{baseName}});
 	{{/isPrimitiveType}}
 	{{^isPrimitiveType}}
-		list_ForEach(listEntry, {{classname}}->{{baseName}}) {
+	{{^isEnum}}
+    list_ForEach(listEntry, {{classname}}->{{baseName}}) {
 		{{complexType}}_free(listEntry->data);
 	}
+    {{/isEnum}}
 	list_free({{classname}}->{{baseName}});
 	{{/isPrimitiveType}}
 	{{/isListContainer}}
@@ -141,7 +205,7 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     {{/isBoolean}}
     {{#isEnum}}
     {{#isString}}
-    if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{{baseName}}}{{classname}}_ToString({{{classname}}}->{{{baseName}}})) == NULL) {
+    if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{{datatypeWithEnum}}}_ToString({{{classname}}}->{{{baseName}}})) == NULL) {
     goto fail; //String
     }
     {{/isString}}
@@ -160,7 +224,7 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     {{/isDateTime}}
 	{{/isPrimitiveType}}
 	{{^isPrimitiveType}}
-	cJSON *{{{baseName}}} = {{complexType}}_convertToJSON({{{classname}}}->{{{baseName}}});
+	cJSON *{{{baseName}}} = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_convertToJSON({{{classname}}}->{{{baseName}}});
 	if({{{baseName}}} == NULL) {
 		goto fail; //nonprimitive
 	}
@@ -204,7 +268,7 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
 
 	listEntry_t *{{{baseName}}}ListEntry;
 	list_ForEach({{{baseName}}}ListEntry, {{classname}}->{{{baseName}}}) {
-		cJSON *item = {{complexType}}_convertToJSON({{{baseName}}}ListEntry->data);
+		cJSON *item = {{complexType}}_convertToJSON({{#isEnum}}{{#items}}({{datatypeWithEnum}}_e){{/items}}{{/isEnum}}{{{baseName}}}ListEntry->data);
 		if(item == NULL) {
 			goto fail;
 		}
@@ -280,13 +344,13 @@ fail:
     {{/isBoolean}}
     {{#isEnum}}
     {{#isString}}
-    {{{baseName}}}_e {{baseName}}Variable;
+    {{{datatypeWithEnum}}}_e {{baseName}}Variable;
     cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
     if(!cJSON_IsString({{{baseName}}}) || ({{{baseName}}}->valuestring == NULL)){
     goto end; //String
     }
 
-    {{baseName}}Variable = {{baseName}}{{classname}}_FromString({{{baseName}}}->valuestring);
+    {{baseName}}Variable = {{datatypeWithEnum}}_FromString({{{baseName}}}->valuestring);
     {{/isString}}
     {{/isEnum}}
     {{^isEnum}}
@@ -305,7 +369,7 @@ fail:
     {{/isDateTime}}
     {{/isPrimitiveType}}
     {{^isPrimitiveType}}
-    {{complexType}}_t *{{baseName}};
+    {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{baseName}};
     cJSON *{{baseName}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{baseName}}");
     if({{classname}}JSON == NULL){
         const char *error_ptr = cJSON_GetErrorPtr();
@@ -314,7 +378,7 @@ fail:
         goto end; //nonprimitive
     }
     char *{{{baseName}}}JSONData = cJSON_Print({{{baseName}}}JSON);
-    {{{baseName}}} = {{complexType}}_parseFromJSON({{{baseName}}}JSONData);
+    {{{baseName}}} = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{baseName}}}JSONData);
     {{/isPrimitiveType}}
     {{/isContainer}}
     {{#isContainer}}
@@ -363,9 +427,9 @@ fail:
             goto end;
         }
 		char *JSONData = cJSON_Print({{{baseName}}});
-        {{complexType}}_t *{{{baseName}}}Item = {{complexType}}_parseFromJSON(JSONData);
+        {{#isEnum}}{{#items}}{{datatypeWithEnum}}_e {{/items}}{{/isEnum}}{{^isEnum}}{{complexType}}_t *{{/isEnum}}{{{baseName}}}Item = {{complexType}}_parseFromJSON(JSONData);
 
-        list_addElement({{{baseName}}}List, {{{baseName}}}Item);
+        list_addElement({{{baseName}}}List, {{#isEnum}}{{#items}}(void *){{/items}}{{/isEnum}}{{{baseName}}}Item);
         free(JSONData);
     }
     {{/isPrimitiveType}}
@@ -463,6 +527,6 @@ end:
     return NULL;
 
 }
-
+{{/isEnum}}
 {{/model}}
 {{/models}}

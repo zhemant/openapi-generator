@@ -22,7 +22,7 @@
 //
 {{/notes}}
 {{#returnType}}{{#returnTypeIsPrimitive}}{{#returnSimpleType}}{{{.}}}*{{/returnSimpleType}}{{^returnSimpleType}}{{{.}}}{{/returnSimpleType}}{{/returnTypeIsPrimitive}}{{^returnTypeIsPrimitive}}{{{.}}}_t*{{/returnTypeIsPrimitive}}{{/returnType}}{{^returnType}}void{{/returnType}}
-{{{classname}}}_{{{operationId}}}(apiClient_t *apiClient{{#allParams}}, {{{dataType}}}{{#isPrimitiveType}}{{#isString}}*{{/isString}}{{#isFile}}*{{/isFile}}{{/isPrimitiveType}}{{^isPrimitiveType}}_t*{{/isPrimitiveType}} {{{paramName}}}{{/allParams}}) {
+{{{classname}}}_{{{operationId}}}(apiClient_t *apiClient{{#allParams}} ,{{#isPrimitiveType}}{{#isNumeric}}{{{dataType}}}{{/isNumeric}}{{#isLong}}{{{dataType}}}{{/isLong}}{{#isInteger}}{{{dataType}}}{{/isInteger}}{{#isBoolean}}bool{{/isBoolean}}{{#isEnum}}{{#isString}}{{{datatypeWithEnum}}}_e{{/isString}}{{/isEnum}}{{^isEnum}}{{#isString}}{{{dataType}}} *{{/isString}}{{/isEnum}}{{#isFile}}*{{/isFile}}{{/isPrimitiveType}}{{^isPrimitiveType}}{{{dataType}}}_t *{{/isPrimitiveType}} {{{paramName}}}{{/allParams}}) {
     list_t    *localVarQueryParameters = {{#hasQueryParams}}list_create();{{/hasQueryParams}}{{^hasQueryParams}}NULL;{{/hasQueryParams}}
     list_t    *localVarHeaderParameters = {{#hasHeaderParams}}list_create();{{/hasHeaderParams}}{{^hasHeaderParams}}NULL;{{/hasHeaderParams}}
     list_t    *localVarFormParameters = {{#hasFormParams}}list_create();{{/hasFormParams}}{{^hasFormParams}}NULL;{{/hasFormParams}}
@@ -38,9 +38,9 @@
     {{#pathParams}}
 
     // Path Params
-    long sizeOfPathParams_{{{paramName}}} = {{#pathParams}}{{#isLong}}sizeof({{paramName}})+3{{/isLong}}{{#isString}}strlen({{paramName}})+3{{/isString}}{{/pathParams}} + strlen("{ {{paramName}} }");
+    long sizeOfPathParams_{{{paramName}}} = {{#pathParams}}{{#isNumeric}}sizeof({{paramName}})+3{{/isNumeric}}{{#isString}}strlen({{paramName}})+3{{/isString}}{{/pathParams}} + strlen("{ {{paramName}} }");
 
-    {{#isLong}}
+    {{#isNumeric}}
     if({{paramName}} == 0){
         goto end;
     }
@@ -52,7 +52,7 @@
 
     localVarPath = strReplace(localVarPath, localVarToReplace_{{paramName}}, localVarBuff_{{paramName}});
 
-    {{/isLong}}
+    {{/isNumeric}}
     {{#isString}}
     if({{paramName}} == NULL) {
         goto end;
@@ -68,19 +68,19 @@
     {{#isString}}
     // header parameters
     char *keyHeader_{{{paramName}}};
-    char *valueHeader_{{{paramName}}};
+    {{#isEnum}}{{{datatypeWithEnum}}}_e{{/isEnum}}{{^isEnum}}{{{dataType}}} *{{/isEnum}}valueHeader_{{{paramName}}};
     keyValuePair_t *keyPairHeader_{{paramName}} = 0;
     if ({{paramName}}) {
         keyHeader_{{{paramName}}} = strdup("{{{paramName}}}");
-        valueHeader_{{{paramName}}} = strdup({{{paramName}}});
-        keyPairHeader_{{paramName}} = keyValuePair_create(keyHeader_{{{paramName}}}, valueHeader_{{{paramName}}});
+        valueHeader_{{{paramName}}} = {{#isEnum}}{{{paramName}}}{{/isEnum}}{{^isEnum}}strdup({{{paramName}}}){{/isEnum}};
+        keyPairHeader_{{paramName}} = keyValuePair_create(keyHeader_{{{paramName}}}, {{#isEnum}}(void *){{/isEnum}}valueHeader_{{{paramName}}});
         list_addElement(localVarHeaderParameters,keyPairHeader_{{paramName}});
     }
     {{/isString}}
     {{^isString}}
     // header parameters
     char *keyHeader_{{{paramName}}};
-    {{dataType}} valueHeader_{{{paramName}}};
+    {{#isPrimitiveType}}{{#isNumeric}}{{{dataType}}}{{/isNumeric}}{{#isLong}}{{{dataType}}}{{/isLong}}{{#isInteger}}{{{dataType}}}{{/isInteger}}{{#isBoolean}}bool{{/isBoolean}}{{#isEnum}}{{#isString}}{{{datatypeWithEnum}}}_e{{/isString}}{{/isEnum}}{{^isEnum}}{{#isString}}{{{dataType}}} *{{/isString}}{{/isEnum}}{{#isFile}}*{{/isFile}}{{/isPrimitiveType}}{{^isPrimitiveType}}{{{dataType}}}_t *{{/isPrimitiveType}} valueHeader_{{{paramName}}};
     keyValuePair_t *keyPairHeader_{{paramName}} = 0;
     if ({{paramName}}) {
         keyHeader_{{{paramName}}} = strdup("{{{paramName}}}");
@@ -94,23 +94,14 @@
 
     // query parameters
     {{#isListContainer}}
-    if ({{paramName}})
+    if ({{paramName}}) {
     {{/isListContainer}}
     {{^isListContainer}}
-    {{#isString}}
     char *keyQuery_{{{paramName}}};
-    char *valueQuery_{{{paramName}}};
+    {{#isPrimitiveType}}{{#isNumeric}}{{{dataType}}}{{/isNumeric}}{{#isLong}}{{{dataType}}}{{/isLong}}{{#isInteger}}{{{dataType}}}{{/isInteger}}{{#isBoolean}}bool{{/isBoolean}}{{#isEnum}}{{#isString}}{{{datatypeWithEnum}}}_e{{/isString}}{{/isEnum}}{{^isEnum}}{{#isString}}{{{dataType}}} *{{/isString}}{{/isEnum}}{{#isFile}}*{{/isFile}}{{/isPrimitiveType}}{{^isPrimitiveType}}{{{dataType}}}_t *{{/isPrimitiveType}} valueQuery_{{{paramName}}};
     keyValuePair_t *keyPairQuery_{{paramName}} = 0;
-    if ({{paramName}})
-    {{/isString}}
-    {{^isString}}
-    char *keyQuery_{{{paramName}}};
-    {{dataType}} valueQuery_{{{paramName}}};
-    keyValuePair_t *keyPairQuery_{{paramName}} = 0;
-    if ({{paramName}})
-    {{/isString}}
+    if ({{paramName}}) {
     {{/isListContainer}}
-    {
     {{#isListContainer}}
     //listContainer
     localVarQueryParameters = {{{paramName}}};
@@ -119,8 +110,8 @@
     {{#isString}}
     //string
     keyQuery_{{{paramName}}} = strdup("{{{paramName}}}");
-    valueQuery_{{{paramName}}} = strdup({{{paramName}}});
-    keyPairQuery_{{paramName}} = keyValuePair_create(keyQuery_{{{paramName}}}, valueQuery_{{{paramName}}});
+    valueQuery_{{{paramName}}} = {{#isEnum}}{{{paramName}}}{{/isEnum}}{{^isEnum}}strdup({{{paramName}}}){{/isEnum}};
+    keyPairQuery_{{paramName}} = keyValuePair_create(keyQuery_{{{paramName}}}, {{#isEnum}}(void *){{/isEnum}}valueQuery_{{{paramName}}});
     list_addElement(localVarQueryParameters,keyPairQuery_{{paramName}});
     {{/isString}}
     {{^isString}}
@@ -146,13 +137,13 @@
     {{^isFile}}
     {{#isString}}
     char *keyForm_{{paramName}};
-    char *valueForm_{{paramName}};
+    {{#isEnum}}{{{datatypeWithEnum}}}_e{{/isEnum}}{{^isEnum}}{{{dataType}}} *{{/isEnum}}valueForm_{{paramName}};
     keyValuePair_t *keyPairForm_{{paramName}} = 0;
     if ({{paramName}})
     {{/isString}}
     {{^isString}}
     char *keyForm_{{paramName}};
-    {{dataType}} valueForm_{{paramName}};
+    {{#isPrimitiveType}}{{#isNumeric}}{{{dataType}}}{{/isNumeric}}{{#isLong}}{{{dataType}}}{{/isLong}}{{#isInteger}}{{{dataType}}}{{/isInteger}}{{#isBoolean}}bool{{/isBoolean}}{{#isEnum}}{{#isString}}{{{datatypeWithEnum}}}_e{{/isString}}{{/isEnum}}{{^isEnum}}{{#isString}}{{{dataType}}} *{{/isString}}{{/isEnum}}{{#isFile}}*{{/isFile}}{{/isPrimitiveType}}{{^isPrimitiveType}}{{{dataType}}}_t *{{/isPrimitiveType}} valueForm_{{paramName}};
     keyValuePair_t *keyPairForm_{{paramName}} = 0;
     if ({{paramName}})
     {{/isString}}
@@ -180,8 +171,8 @@
         {{^isFile}}
         {{#isString}}
         keyForm_{{paramName}} = strdup("{{{paramName}}}");
-        valueForm_{{paramName}} = strdup({{paramName}});
-        keyPairForm_{{paramName}} = keyValuePair_create(keyForm_{{paramName}},valueForm_{{paramName}});
+        valueForm_{{paramName}} = {{#isEnum}}{{{paramName}}}{{/isEnum}}{{^isEnum}}strdup({{{paramName}}}){{/isEnum}};
+        keyPairForm_{{paramName}} = keyValuePair_create(keyForm_{{paramName}},{{#isEnum}}(void *){{/isEnum}}valueForm_{{paramName}});
         list_addElement(localVarFormParameters,keyPairForm_{{paramName}}); //String
         {{/isString}}
         {{^isString}}
@@ -323,7 +314,7 @@
     {{#headerParams}}
     {{#isString}}
     free(keyHeader_{{{paramName}}});
-    free(valueHeader_{{{paramName}}});
+    {{^isEnum}}free(valueHeader_{{{paramName}}});{{/isEnum}}
     {{/isString}}
     {{^isString}}
     free(keyHeader_{{{paramName}}});
@@ -346,7 +337,7 @@
     {{^isListContainer}}
     {{#isString}}
     free(keyQuery_{{{paramName}}});
-    free(valueQuery_{{{paramName}}});
+    {{^isEnum}}free(valueQuery_{{{paramName}}});{{/isEnum}}
     keyValuePair_free(keyPairQuery_{{{paramName}}});
     {{/isString}}
     {{^isString}}
@@ -365,12 +356,12 @@
     {{^isFile}}
     {{#isString}}
     free(keyForm_{{{paramName}}});
-    free(valueForm_{{{paramName}}});
+    {{^isEnum}}free(valueForm_{{{paramName}}});{{/isEnum}}
     free(keyPairForm_{{paramName}});
     {{/isString}}
     {{^isString}}
     free(keyForm_{{{paramName}}});
-    free(keyPairForm_{{paramName}});
+    free(keyPairForm_{{paramName}}); //TODO: check if this needs to be free
     {{/isString}}
     {{/isFile}}
     {{/formParams}}
@@ -393,7 +384,7 @@ end:    apiClient_free(apiClient);
     {{#headerParams}}
     {{#isString}}
     free(keyHeader_{{{paramName}}});
-    free(valueHeader_{{{paramName}}});
+    {{^isEnum}}free(valueHeader_{{{paramName}}});{{/isEnum}}
     {{/isString}}
     {{^isString}}
     free(keyHeader_{{{paramName}}});
@@ -416,7 +407,7 @@ end:    apiClient_free(apiClient);
     {{^isListContainer}}
     {{#isString}}
     free(keyQuery_{{{paramName}}});
-    free(valueQuery_{{{paramName}}});
+    {{^isEnum}}free(valueQuery_{{{paramName}}});{{/isEnum}}
     keyValuePair_free(keyPairQuery_{{{paramName}}});
     {{/isString}}
     {{#isString}}
@@ -434,12 +425,12 @@ end:    apiClient_free(apiClient);
     {{^isFile}}
     {{#isString}}
     free(keyForm_{{{paramName}}});
-    free(valueForm_{{{paramName}}});
+    {{^isEnum}}free(valueForm_{{{paramName}}});{{/isEnum}}
     keyValuePair_free(keyPairForm_{{{paramName}}});
     {{/isString}}
     {{^isString}}
     free(keyForm_{{{paramName}}});
-    free(keyPairForm_{{paramName}});
+    free(keyPairForm_{{paramName}}); //TODO: check if this needs to be free
     {{/isString}}
     {{/isFile}}
     {{/formParams}}
