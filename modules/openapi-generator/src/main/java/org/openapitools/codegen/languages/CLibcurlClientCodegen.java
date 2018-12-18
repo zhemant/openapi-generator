@@ -154,12 +154,16 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         typeMapping.put("DateTime", "char");
         typeMapping.put("boolean", "int");
         typeMapping.put("file", "FILE");
-        typeMapping.put("binary", "char");
-        typeMapping.put("ByteArray", "char");
+        typeMapping.put("binary", "binary_t");
+        typeMapping.put("byte", "uint32_t");
         typeMapping.put("UUID", "char");
         typeMapping.put("array", "list");
         typeMapping.put("map", "list_t*");
         typeMapping.put("date-time", "char");
+
+        importMapping.put("object", "#include \"object.h\"");
+        importMapping.put("uint32_t", "#include <stdint.h>");
+        importMapping.put("binary_t", "#include <stdint.h>");
 
         // remove modelPackage and apiPackage added by default
         Iterator<CliOption> itr = cliOptions.iterator();
