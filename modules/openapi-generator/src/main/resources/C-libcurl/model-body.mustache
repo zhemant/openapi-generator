@@ -113,6 +113,15 @@ end:
     {{datatype}} *{{baseName}}{{#hasMore}},{{/hasMore}}
     {{/isString}}
     {{/isEnum}}
+    {{#isByteArray}}
+    {{datatype}} {{baseName}}{{#hasMore}},{{/hasMore}}
+    {{/isByteArray}}
+    {{#isBinary}}
+    {{datatype}} {{baseName}}{{#hasMore}},{{/hasMore}}
+    {{/isBinary}}
+    {{#isDate}}
+    {{datatype}} *{{baseName}}{{#hasMore}},{{/hasMore}}
+    {{/isDate}}
     {{#isDateTime}}
     {{datatype}} *{{baseName}}{{#hasMore}},{{/hasMore}}
     {{/isDateTime}}
@@ -129,7 +138,6 @@ end:
     {{/isListContainer}}
     {{#isMapContainer}}
     {{datatype}} {{baseName}}{{#hasMore}},{{/hasMore}}
-    // TODO map/hash not supported at the moment
     {{/isMapContainer}}
     {{/isContainer}}
     {{/vars}}
@@ -156,6 +164,12 @@ void {{classname}}_free({{classname}}_t *{{classname}}) {
     free({{{classname}}}->{{{baseName}}});
     {{/isString}}
     {{/isEnum}}
+    {{#isBinary}}
+    free({{{classname}}}->{{{baseName}}}.data);
+    {{/isBinary}}
+    {{#isDate}}
+    free({{{classname}}}->{{{baseName}}});
+    {{/isDate}}
     {{#isDateTime}}
     free({{{classname}}}->{{{baseName}}});
     {{/isDateTime}}
@@ -200,13 +214,14 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     {{/isNumeric}}
     {{#isBoolean}}
     if(cJSON_AddBoolToObject(item, "{{{baseName}}}", {{{classname}}}->{{{baseName}}}) == NULL) {
-    goto fail; //Numeric
+    goto fail; //Bool
     }
     {{/isBoolean}}
     {{#isEnum}}
     {{#isString}}
-    if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{{datatypeWithEnum}}}_ToString({{{classname}}}->{{{baseName}}})) == NULL) {
-    goto fail; //String
+    if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{^isModel}}{{{datatypeWithEnum}}}_ToString{{/isModel}}({{{classname}}}->{{{baseName}}})) == NULL)
+    {
+    goto fail; //Enum
     }
     {{/isString}}
     {{/isEnum}}
@@ -217,9 +232,25 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     }
     {{/isString}}
     {{/isEnum}}
+    {{#isByteArray}}
+    if(cJSON_AddNumberToObject(item, "{{{baseName}}}", {{{classname}}}->{{{baseName}}}) == NULL) {
+    goto fail; //Byte
+    }
+    {{/isByteArray}}
+    {{#isBinary}}
+    char* encoded_str = base64encode(mem_pool, {{{classname}}}->{{{baseName}}}.data,{{{classname}}}->{{{baseName}}}.len);
+    if(cJSON_AddStringToObject(item, "{{{baseName}}}", encoded_str) == NULL) {
+    goto fail; //Binary
+    }
+    {{/isBinary}}
+    {{#isDate}}
+    if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{{classname}}}->{{{baseName}}}) == NULL) {
+    goto fail; //Date
+    }
+    {{/isDate}}
     {{#isDateTime}}
     if(cJSON_AddStringToObject(item, "{{{baseName}}}", {{{classname}}}->{{{baseName}}}) == NULL) {
-    goto fail; //String
+    goto fail; //Date-Time
     }
     {{/isDateTime}}
 	{{/isPrimitiveType}}
@@ -312,17 +343,9 @@ fail:
 	return NULL;
 }
 
-{{classname}}_t *{{classname}}_parseFromJSON(char *jsonString){
+{{classname}}_t *{{classname}}_parseFromJSON(cJSON *{{classname}}JSON){
 
     {{classname}}_t *{{classname}} = NULL;
-    cJSON *{{classname}}JSON = cJSON_Parse(jsonString);
-    if({{classname}}JSON == NULL){
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL) {
-            fprintf(stderr, "Error Before: %s\n", error_ptr);
-            goto end;
-        }
-    }
 
     {{#vars}}
     // {{{classname}}}->{{{baseName}}}
@@ -339,46 +362,63 @@ fail:
     cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
     if(!cJSON_IsBool({{{baseName}}}))
     {
-    goto end; //Numeric
+    goto end; //Bool
     }
     {{/isBoolean}}
     {{#isEnum}}
     {{#isString}}
     {{{datatypeWithEnum}}}_e {{baseName}}Variable;
     cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
-    if(!cJSON_IsString({{{baseName}}}) || ({{{baseName}}}->valuestring == NULL)){
-    goto end; //String
+    if(!cJSON_IsString({{{baseName}}}))
+    {
+    goto end; //Enum
     }
-
-    {{baseName}}Variable = {{datatypeWithEnum}}_FromString({{{baseName}}}->valuestring);
+    {{baseName}}Variable = {{^isModel}}{{datatypeWithEnum}}_FromString{{/isModel}}({{{baseName}}}->valuestring);
     {{/isString}}
     {{/isEnum}}
     {{^isEnum}}
     {{#isString}}
     cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
-    if(!cJSON_IsString({{{baseName}}}) || ({{{baseName}}}->valuestring == NULL)){
+    if(!cJSON_IsString({{{baseName}}}))
+    {
     goto end; //String
     }
     {{/isString}}
     {{/isEnum}}
+    {{#isByteArray}}
+    if(cJSON_AddNumberToObject(item, "{{{baseName}}}", {{{classname}}}->{{{baseName}}}) == NULL) {
+    goto fail; //Byte
+    }
+    {{/isByteArray}}
+    {{#isBinary}}
+    cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
+    if(!cJSON_IsString({{{baseName}}}))
+    {
+    goto end; //Binary
+    }
+    char* decoded_str = base64decode(mem_pool, {{{baseName}}}->valuestring, strlen({{{baseName}}}->valuestring));
+    {{/isBinary}}
+    {{#isDate}}
+    cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
+    if(!cJSON_IsString({{{baseName}}}))
+    {
+    goto end; //Date
+    }
+    {{/isDate}}
     {{#isDateTime}}
     cJSON *{{{baseName}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{baseName}}}");
-    if(!cJSON_IsString({{{baseName}}}) || ({{{baseName}}}->valuestring == NULL)){
-    goto end; //String
+    if(!cJSON_IsString({{{baseName}}}))
+    {
+    goto end; //DateTime
     }
     {{/isDateTime}}
     {{/isPrimitiveType}}
     {{^isPrimitiveType}}
-    {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{baseName}};
+    {{^isFreeFormObject}}{{complexType}}{{/isFreeFormObject}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{baseName}} = NULL;
     cJSON *{{baseName}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{baseName}}");
-    if({{classname}}JSON == NULL){
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-            fprintf(stderr, "Error Before: %s\n", error_ptr);
-        goto end; //nonprimitive
+    if({{baseName}}JSON != NULL){
+    {{{baseName}}} = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{baseName}}}JSON); //nonprimitive
     }
-    char *{{{baseName}}}JSONData = cJSON_Print({{{baseName}}}JSON);
-    {{{baseName}}} = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{baseName}}}JSONData);
     {{/isPrimitiveType}}
     {{/isContainer}}
     {{#isContainer}}
@@ -426,8 +466,7 @@ fail:
         if(!cJSON_IsObject({{{baseName}}})){
             goto end;
         }
-		char *JSONData = cJSON_Print({{{baseName}}});
-        {{#isEnum}}{{#items}}{{datatypeWithEnum}}_e {{/items}}{{/isEnum}}{{^isEnum}}{{complexType}}_t *{{/isEnum}}{{{baseName}}}Item = {{complexType}}_parseFromJSON(JSONData);
+        {{#isEnum}}{{#items}}{{datatypeWithEnum}}_e {{/items}}{{/isEnum}}{{^isEnum}}{{complexType}}_t *{{/isEnum}}{{{baseName}}}Item = {{complexType}}_parseFromJSON({{{baseName}}});
 
         list_addElement({{{baseName}}}List, {{#isEnum}}{{#items}}(void *){{/items}}{{/isEnum}}{{{baseName}}}Item);
         free(JSONData);
@@ -493,6 +532,15 @@ fail:
         strdup({{{baseName}}}->valuestring){{#hasMore}},{{/hasMore}}
         {{/isString}}
         {{/isEnum}}
+        {{#isByteArray}}
+        {{{baseName}}}->valueint{{#hasMore}},{{/hasMore}}
+        {{/isByteArray}}
+        {{#isBinary}}
+        decoded_str{{#hasMore}},{{/hasMore}}
+        {{/isBinary}}
+        {{#isDate}}
+        strdup({{{baseName}}}->valuestring){{#hasMore}},{{/hasMore}}
+        {{/isDate}}
         {{#isDateTime}}
         strdup({{{baseName}}}->valuestring){{#hasMore}},{{/hasMore}}
         {{/isDateTime}}
@@ -513,14 +561,7 @@ fail:
         {{/isContainer}}
         {{/vars}}
         );
-{{#vars}}
-        {{^isContainer}}
-        {{^isPrimitiveType}}
-        free({{{baseName}}}JSONData);
-        {{/isPrimitiveType}}
-        {{/isContainer}}
-{{/vars}}
- cJSON_Delete({{classname}}JSON);
+
     return {{classname}};
 end:
     cJSON_Delete({{classname}}JSON);
