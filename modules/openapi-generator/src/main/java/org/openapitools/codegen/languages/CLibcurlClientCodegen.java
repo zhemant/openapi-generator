@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
 
 import static org.openapitools.codegen.utils.StringUtils.camelize;
 import static org.openapitools.codegen.utils.StringUtils.underscore;
@@ -134,14 +135,16 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         // primitives in C lang
         languageSpecificPrimitives.add("int");
         languageSpecificPrimitives.add("short");
-        languageSpecificPrimitives.add("int");
+        languageSpecificPrimitives.add("uint32_t");
         languageSpecificPrimitives.add("long");
         languageSpecificPrimitives.add("float");
         languageSpecificPrimitives.add("double");
         languageSpecificPrimitives.add("char");
         languageSpecificPrimitives.add("FILE");
+        languageSpecificPrimitives.add("binary_t");
         languageSpecificPrimitives.add("list_t*");
         languageSpecificPrimitives.add("list");
+        languageSpecificPrimitives.add("bool");
 
         typeMapping.put("string", "char");
         typeMapping.put("char", "char");
@@ -152,18 +155,20 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         typeMapping.put("number", "float");
         typeMapping.put("date", "char");
         typeMapping.put("DateTime", "char");
-        typeMapping.put("boolean", "int");
-        typeMapping.put("file", "FILE");
+        typeMapping.put("boolean", "bool");
+        typeMapping.put("file", "binary_t");
         typeMapping.put("binary", "binary_t");
-        typeMapping.put("byte", "uint32_t");
+        typeMapping.put("ByteArray", "uint32_t");
         typeMapping.put("UUID", "char");
         typeMapping.put("array", "list");
         typeMapping.put("map", "list_t*");
         typeMapping.put("date-time", "char");
 
+        super.importMapping = new HashMap<String, String>();
         importMapping.put("object", "#include \"object.h\"");
         importMapping.put("uint32_t", "#include <stdint.h>");
         importMapping.put("binary_t", "#include <stdint.h>");
+        importMapping.put("bool", "#include <stdbool.h>");
 
         // remove modelPackage and apiPackage added by default
         Iterator<CliOption> itr = cliOptions.iterator();
@@ -350,6 +355,9 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
     @Override
     public String toParamName(String name) {
         // should be the same as variable name
+        if (name.matches("^\\d.*")) {
+            name = "N" + name;
+        }
         name = name.replaceAll("-","_");
         return name;
     }
@@ -523,7 +531,11 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
 
     @Override
     public String toModelImport(String name) {
-        return "#include \"" +"../model/" + name + ".h\"";
+        if (importMapping.containsKey(name)) {
+            return importMapping.get(name);
+        } else {
+            return "#include \"" +"../model/" + name + ".h\"";
+        }
     }
 
     @Override
