@@ -233,16 +233,16 @@
     {{/returnContainer}}
     {{^returnContainer}}
     //nonprimitive not container
-    char* data_to_parse = cJSON_Print(apiClient->dataReceived);
-    if (data_to_parse == NULL)
+    cJSON* parsed_json_data = cJSON_Parse(apiClient->dataReceived);
+    if (parsed_json_data == NULL)
     {
         goto end;
     }
-    {{{returnBaseType}}}_t *elementToReturn = {{{returnBaseType}}}_parseFromJSON(data_to_parse);
+    {{{returnBaseType}}}_t *elementToReturn = {{{returnBaseType}}}_parseFromJSON(parsed_json_data);
     if(elementToReturn == NULL) {
         goto end;
     }
-    free(data_to_parse);
+    cJSON_Delete(parsed_json_data);
     {{/returnContainer}}
     //return type
     {{/returnTypeIsPrimitive}}
