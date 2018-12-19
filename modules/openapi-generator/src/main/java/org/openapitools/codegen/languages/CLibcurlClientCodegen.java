@@ -141,7 +141,7 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         languageSpecificPrimitives.add("double");
         languageSpecificPrimitives.add("char");
         languageSpecificPrimitives.add("FILE");
-        languageSpecificPrimitives.add("binary_t");
+        languageSpecificPrimitives.add("binary_t*");
         languageSpecificPrimitives.add("list_t*");
         languageSpecificPrimitives.add("list");
         languageSpecificPrimitives.add("bool");
@@ -156,8 +156,8 @@ public class CLibcurlClientCodegen extends DefaultCodegen implements CodegenConf
         typeMapping.put("date", "char");
         typeMapping.put("DateTime", "char");
         typeMapping.put("boolean", "bool");
-        typeMapping.put("file", "binary_t");
-        typeMapping.put("binary", "binary_t");
+        typeMapping.put("file", "binary_t*");
+        typeMapping.put("binary", "binary_t*");
         typeMapping.put("ByteArray", "uint32_t");
         typeMapping.put("UUID", "char");
         typeMapping.put("array", "list");

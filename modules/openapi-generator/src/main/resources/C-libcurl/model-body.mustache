@@ -155,7 +155,7 @@ void {{classname}}_free({{classname}}_t *{{classname}}) {
     {{/isString}}
     {{/isEnum}}
     {{#isBinary}}
-    free({{{classname}}}->{{{name}}}.data);
+    free({{{classname}}}->{{{name}}}->data);
     {{/isBinary}}
     {{#isDate}}
     free({{{classname}}}->{{{name}}});
@@ -195,6 +195,7 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
 	cJSON *item = cJSON_CreateObject();
 	{{#vars}}
 	// {{{classname}}}->{{{name}}}
+	{{^required}} if ({{{classname}}}->{{{name}}}) { {{/required}}
 	{{^isContainer}}
 	{{#isPrimitiveType}}
     {{#isNumeric}}
@@ -228,7 +229,7 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     }
     {{/isByteArray}}
     {{#isBinary}}
-    char* encoded_str = base64encode(mem_pool, {{{classname}}}->{{{name}}}.data,{{{classname}}}->{{{name}}}.len);
+    char* encoded_str = base64encode({{{classname}}}->{{{name}}}->data,{{{classname}}}->{{{name}}}->len);
     if(cJSON_AddStringToObject(item, "{{{name}}}", encoded_str) == NULL) {
     goto fail; //Binary
     }
@@ -325,6 +326,9 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     }
 	{{/isMapContainer}}
 	{{/isContainer}}
+	{{^required}}
+    }
+	{{/required}}
 
     {{/vars}}
 	return item;
@@ -339,17 +343,19 @@ fail:
 
     {{#vars}}
     // {{{classname}}}->{{{name}}}
+    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+
     {{^isContainer}}
     {{#isPrimitiveType}}
     {{#isNumeric}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsNumber({{{name}}}))
     {
     goto end; //Numeric
     }
     {{/isNumeric}}
     {{#isBoolean}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsBool({{{name}}}))
     {
     goto end; //Bool
@@ -358,7 +364,7 @@ fail:
     {{#isEnum}}
     {{#isString}}
     {{{datatypeWithEnum}}}_e {{name}}Variable;
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsString({{{name}}}))
     {
     goto end; //Enum
@@ -368,7 +374,7 @@ fail:
     {{/isEnum}}
     {{^isEnum}}
     {{#isString}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsString({{{name}}}))
     {
     goto end; //String
@@ -376,33 +382,33 @@ fail:
     {{/isString}}
     {{/isEnum}}
     {{#isByteArray}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsNumber({{{name}}}))
     {
     goto end; //Byte
     }
     {{/isByteArray}}
     {{#isBinary}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    binary_t* decoded_str;
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsString({{{name}}}))
     {
     goto end; //Binary
     }
-    char* decoded = base64decode(mem_pool, {{{name}}}->valuestring, strlen({{{name}}}->valuestring));
-    binary_t decoded_str;
-    decoded_str.data = mem_zalloc(mem_pool, (strlen(decoded) - 1));
-    memcpy(decoded_str.data,decoded,(strlen(decoded)-1));
-    decoded_str.len = strlen(decoded) - 1;
+    char* decoded = base64decode({{{name}}}->valuestring, strlen({{{name}}}->valuestring));
+    decoded_str->data = malloc((strlen(decoded) - 1));
+    memcpy(decoded_str->data,decoded,(strlen(decoded)-1));
+    decoded_str->len = strlen(decoded) - 1;
     {{/isBinary}}
     {{#isDate}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsString({{{name}}}))
     {
     goto end; //Date
     }
     {{/isDate}}
     {{#isDateTime}}
-    cJSON *{{{name}}} = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
+    {{^required}}if ({{{name}}}) { {{/required}}
     if(!cJSON_IsString({{{name}}}))
     {
     goto end; //DateTime
@@ -410,90 +416,90 @@ fail:
     {{/isDateTime}}
     {{/isPrimitiveType}}
     {{^isPrimitiveType}}
-    {{^isFreeFormObject}}{{complexType}}{{/isFreeFormObject}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{name}} = NULL;
-    cJSON *{{name}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{name}}");
-    if({{name}}JSON != NULL){
-    {{{name}}} = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{name}}}JSON); //nonprimitive
-    }
+    {{^isFreeFormObject}}{{complexType}}{{/isFreeFormObject}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{name}}_local_var = NULL;
+    {{^required}}if ({{{name}}}) { {{/required}}
+    {{{name}}}_local_var = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{name}}}); //nonprimitive
     {{/isPrimitiveType}}
     {{/isContainer}}
     {{#isContainer}}
     {{#isListContainer}}
     {{#isPrimitiveType}}
-    cJSON *{{{name}}};
-    cJSON *{{{name}}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
-    if(!cJSON_IsArray({{{name}}}JSON)) {
+    list_t *{{{name}}}List;
+    {{^required}}if ({{{name}}}) { {{/required}}
+    cJSON *{{{name}}}_local;
+    if(!cJSON_IsArray({{{name}}})) {
         goto end;//primitive container
     }
-    list_t *{{{name}}}List = list_create();
+    {{{name}}}List = list_create();
 
-    cJSON_ArrayForEach({{{name}}}, {{{name}}}JSON)
+    cJSON_ArrayForEach({{{name}}}_local, {{{name}}})
     {
         {{#items}}
         {{#isString}}
-        if(!cJSON_IsString({{{name}}}))
+        if(!cJSON_IsString({{{name}}}_local))
         {
             goto end;
         }
-        list_addElement({{{name}}}List , strdup({{{name}}}->valuestring));
+        list_addElement({{{name}}}List , strdup({{{name}}}_local->valuestring));
         {{/isString}}
         {{^isString}}
-        if(!cJSON_IsNumber({{{name}}}))
+        if(!cJSON_IsNumber({{{name}}}_local))
         {
             goto end;
         }
-        list_addElement({{{name}}}List , &{{{name}}}->valuedouble);
+        list_addElement({{{name}}}List , &{{{name}}}_local->valuedouble);
         {{/isString}}
         {{/items}}
 
     }
     {{/isPrimitiveType}}
     {{^isPrimitiveType}}
-    cJSON *{{{name}}};
-    cJSON *{{{name}}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON,"{{{name}}}");
-    if(!cJSON_IsArray({{{name}}}JSON)){
+    list_t *{{{name}}}List;
+    {{^required}}if ({{{name}}}) { {{/required}}
+    cJSON *{{{name}}}_local_nonprimitive;
+    if(!cJSON_IsArray({{{name}}})){
         goto end; //nonprimitive container
     }
 
-    list_t *{{{name}}}List = list_create();
+    {{{name}}}List = list_create();
 
-    cJSON_ArrayForEach({{{name}}},{{{name}}}JSON )
+    cJSON_ArrayForEach({{{name}}}_local_nonprimitive,{{{name}}} )
     {
-        if(!cJSON_IsObject({{{name}}})){
+        if(!cJSON_IsObject({{{name}}}_local_nonprimitive)){
             goto end;
         }
-        {{#isEnum}}{{#items}}{{datatypeWithEnum}}_e {{/items}}{{/isEnum}}{{^isEnum}}{{complexType}}_t *{{/isEnum}}{{{name}}}Item = {{complexType}}_parseFromJSON({{{name}}});
+        {{#isEnum}}{{#items}}{{datatypeWithEnum}}_e {{/items}}{{/isEnum}}{{^isEnum}}{{complexType}}_t *{{/isEnum}}{{{name}}}Item = {{complexType}}_parseFromJSON({{{name}}}_local_nonprimitive);
 
         list_addElement({{{name}}}List, {{#isEnum}}{{#items}}(void *){{/items}}{{/isEnum}}{{{name}}}Item);
     }
     {{/isPrimitiveType}}
     {{/isListContainer}}
     {{#isMapContainer}}
-    // map
-    cJSON *{{{complexType}}};
-    cJSON *{{{name}}}JSON = cJSON_GetObjectItemCaseSensitive({{classname}}JSON, "{{{name}}}");
-    if(!cJSON_IsObject({{{name}}}JSON)) {
+    list_t *{{{complexType}}}List;
+    {{^required}}if ({{{name}}}) { {{/required}}
+    cJSON *{{{complexType}}}_local_map;
+    if(!cJSON_IsObject({{{name}}})) {
         goto end;//primitive map container
     }
-    list_t *{{{complexType}}}List = list_create();
+    {{{complexType}}}List = list_create();
     keyValuePair_t *localMapKeyPair;
-    cJSON_ArrayForEach({{{complexType}}}, {{{name}}}JSON)
+    cJSON_ArrayForEach({{{complexType}}}_local_map, {{{name}}})
     {
         {{#items}}
         {{#isString}}
-        if(!cJSON_IsString({{{complexType}}}))
+        if(!cJSON_IsString({{{complexType}}}_local_map))
         {
             goto end;
         }
-        localMapKeyPair = keyValuePair_create(strdup({{{complexType}}}->string),strdup({{{complexType}}}->valuestring))
+        localMapKeyPair = keyValuePair_create(strdup({{{complexType}}}_local_map->string),strdup({{{complexType}}}_local_map->valuestring))
         list_addElement({{{complexType}}}List , localMapKeyPair);
         {{/isString}}
         {{^isString}}
-        if(!cJSON_IsNumber({{{complexType}}}))
+        if(!cJSON_IsNumber({{{complexType}}}_local_map))
         {
             goto end;
         }
-        localMapKeyPair = keyValuePair_create(strdup({{{complexType}}}->string),&{{{complexType}}}->valuedouble );
+        localMapKeyPair = keyValuePair_create(strdup({{{complexType}}}_local_map->string),&{{{complexType}}}_local_map->valuedouble );
         list_addElement({{{complexType}}}List , localMapKeyPair);
         {{/isString}}
         {{/items}}
@@ -501,6 +507,9 @@ fail:
     }
     {{/isMapContainer}}
     {{/isContainer}}
+    {{^required}}
+    }
+    {{/required}}
 
     {{/vars}}
 
@@ -508,50 +517,50 @@ fail:
         {{#vars}}
         {{^isContainer}}
         {{^isPrimitiveType}}
-        {{{name}}}{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}_local_var{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isPrimitiveType}}
         {{#isPrimitiveType}}
         {{#isNumeric}}
-        {{{name}}}->valuedouble{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}->valuedouble{{^required}} : 0{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isNumeric}}
         {{#isBoolean}}
-        {{{name}}}->valueint{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}->valueint{{^required}} : 0{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isBoolean}}
         {{#isEnum}}
         {{#isString}}
-        {{name}}Variable{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{name}}Variable{{^required}} : -1{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isString}}
         {{/isEnum}}
         {{^isEnum}}
         {{#isString}}
-        strdup({{{name}}}->valuestring){{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}strdup({{{name}}}->valuestring){{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isString}}
         {{/isEnum}}
         {{#isByteArray}}
-        {{{name}}}->valueint{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}->valueint{{^required}} : 0{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isByteArray}}
         {{#isBinary}}
-        decoded_str{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}decoded_str{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isBinary}}
         {{#isDate}}
-        strdup({{{name}}}->valuestring){{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}strdup({{{name}}}->valuestring){{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isDate}}
         {{#isDateTime}}
-        strdup({{{name}}}->valuestring){{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}strdup({{{name}}}->valuestring){{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isDateTime}}
         {{/isPrimitiveType}}
         {{/isContainer}}
         {{#isContainer}}
         {{#isListContainer}}
         {{#isPrimitiveType}}
-        {{{name}}}List{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}List{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isPrimitiveType}}
         {{^isPrimitiveType}}
-        {{{name}}}List{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}List{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isPrimitiveType}}
         {{/isListContainer}}
         {{#isMapContainer}}
-        {{{complexType}}}List{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{complexType}}}List{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isMapContainer}}
         {{/isContainer}}
         {{/vars}}
