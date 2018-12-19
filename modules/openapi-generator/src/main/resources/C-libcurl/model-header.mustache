@@ -30,7 +30,7 @@ char* {{name}}_ToString({{name}}_e {{name}});
 
 cJSON *{{name}}_convertToJSON({{name}}_e {{name}});
 
-{{name}}_e {{name}}_parseFromJSON(char *jsonString);
+{{name}}_e {{name}}_parseFromJSON(cJSON *{{classname}}JSON);
 {{/isPrimitiveType}}
 {{/isModel}}
 {{/isEnum}}
