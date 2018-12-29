@@ -37,7 +37,7 @@
     {{#pathParams}}
 
     // Path Params
-    long sizeOfPathParams_{{{paramName}}} = {{#pathParams}}{{#isNumeric}}sizeof({{paramName}})+3{{/isNumeric}}{{#isString}}strlen({{paramName}})+3{{/isString}}{{/pathParams}} + strlen("{ {{paramName}} }");
+    long sizeOfPathParams_{{{paramName}}} = strlen("{{paramName}}") + 3;
 
     {{#isNumeric}}
     if({{paramName}} == 0){
