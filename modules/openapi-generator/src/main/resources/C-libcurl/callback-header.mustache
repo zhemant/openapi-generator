@@ -1,0 +1,20 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include "../include/apiClient.h"
+#include "../include/list.h"
+#include "../external/cJSON.h"
+#include "../include/keyValuePair.h"
+{{#apiInfo}}{{#apis}}{{#operations}}{{#operation}}{{#callbacks}}{{#urls}}{{#requests}}
+{{#imports}}
+#include "../models/{{{.}}}"
+{{/imports}}
+
+{{#returnType}}{{#returnTypeIsPrimitive}}{{#returnSimpleType}}{{{.}}}*{{/returnSimpleType}}{{^returnSimpleType}}{{{.}}}{{/returnSimpleType}}{{/returnTypeIsPrimitive}}{{^returnTypeIsPrimitive}}{{{.}}}_t*{{/returnTypeIsPrimitive}}{{/returnType}}{{^returnType}}void{{/returnType}}
+{{{classname}}}_{{{operationId}}}(apiClient_t *apiClient{{#allParams}} ,{{#isPrimitiveType}}{{#isNumeric}}{{{dataType}}}{{/isNumeric}}{{#isLong}}{{{dataType}}}{{/isLong}}{{#isInteger}}{{{dataType}}}{{/isInteger}}{{#isBoolean}}bool{{/isBoolean}}{{#isEnum}}{{#isString}}{{{datatypeWithEnum}}}_e{{/isString}}{{/isEnum}}{{^isEnum}}{{#isString}}{{{dataType}}} *{{/isString}}{{/isEnum}}{{#isByteArray}}{{{dataType}}}{{/isByteArray}}{{#isDate}}{{{dataType}}}{{/isDate}}{{#isDateTime}}{{{dataType}}}{{/isDateTime}}{{#isFile}}{{{dataType}}}{{/isFile}}{{/isPrimitiveType}}{{^isPrimitiveType}}{{{dataType}}}_t *{{/isPrimitiveType}} {{{paramName}}}{{/allParams}});
+
+{{/requests}}
+{{/urls}}
+{{/callbacks}}
+{{/operation}}
+{{/operations}}
+{{/apis}}{{/apiInfo}}
