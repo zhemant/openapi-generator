@@ -132,12 +132,12 @@ end:
     {{/isContainer}}
     {{/vars}}
     ) {
-	{{classname}}_t *{{classname}} = malloc(sizeof({{classname}}_t));
+	{{classname}}_t *{{classname}}_local_var = malloc(sizeof({{classname}}_t));
 	{{#vars}}
-	{{classname}}->{{{name}}} = {{{name}}};
+	{{classname}}_local_var->{{{name}}} = {{{name}}};
 	{{/vars}}
 
-	return {{classname}};
+	return {{classname}}_local_var;
 }
 
 
@@ -246,11 +246,11 @@ cJSON *{{classname}}_convertToJSON({{classname}}_t *{{classname}}) {
     {{/isDateTime}}
 	{{/isPrimitiveType}}
 	{{^isPrimitiveType}}
-	cJSON *{{{name}}} = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_convertToJSON({{{classname}}}->{{{name}}});
-	if({{{name}}} == NULL) {
+	cJSON *{{{name}}}_local_JSON = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_convertToJSON({{{classname}}}->{{{name}}});
+	if({{{name}}}_local_JSON == NULL) {
 		goto fail; //nonprimitive
 	}
-	cJSON_AddItemToObject(item, "{{{name}}}", {{{name}}});
+	cJSON_AddItemToObject(item, "{{{name}}}", {{{name}}}_local_JSON);
 	if(item->child == NULL) {
 		goto fail;
 	}
@@ -339,7 +339,7 @@ fail:
 
 {{classname}}_t *{{classname}}_parseFromJSON(cJSON *{{classname}}JSON){
 
-    {{classname}}_t *{{classname}} = NULL;
+    {{classname}}_t *{{classname}}_local_var = NULL;
 
     {{#vars}}
     // {{{classname}}}->{{{name}}}
@@ -416,9 +416,9 @@ fail:
     {{/isDateTime}}
     {{/isPrimitiveType}}
     {{^isPrimitiveType}}
-    {{^isFreeFormObject}}{{complexType}}{{/isFreeFormObject}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{name}}_local_var = NULL;
+    {{^isFreeFormObject}}{{complexType}}{{/isFreeFormObject}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_t *{{name}}_local_nonprim = NULL;
     {{^required}}if ({{{name}}}) { {{/required}}
-    {{{name}}}_local_var = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{name}}}); //nonprimitive
+    {{{name}}}_local_nonprim = {{complexType}}{{#isFreeFormObject}}object{{/isFreeFormObject}}_parseFromJSON({{{name}}}); //nonprimitive
     {{/isPrimitiveType}}
     {{/isContainer}}
     {{#isContainer}}
@@ -513,11 +513,11 @@ fail:
 
     {{/vars}}
 
-    {{classname}} = {{classname}}_create (
+    {{classname}}_local_var = {{classname}}_create (
         {{#vars}}
         {{^isContainer}}
         {{^isPrimitiveType}}
-        {{^required}}{{{name}}} ? {{/required}}{{{name}}}_local_var{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
+        {{^required}}{{{name}}} ? {{/required}}{{{name}}}_local_nonprim{{^required}} : NULL{{/required}}{{#hasMore}},{{/hasMore}}
         {{/isPrimitiveType}}
         {{#isPrimitiveType}}
         {{#isNumeric}}
@@ -566,7 +566,7 @@ fail:
         {{/vars}}
         );
 
-    return {{classname}};
+    return {{classname}}_local_var;
 end:
     cJSON_Delete({{classname}}JSON);
     return NULL;
